@@ -46,24 +46,22 @@ namespace Treehouse.FitnessFrog.Controllers
                 Date = DateTime.Today,
             };
 
-            ViewBag.ActivitiesSelectListItems = new SelectList(Data.Data.Activities, "Id", "Name");
+            SetupActivitiesSelectListItems();
             return View(entry);
         }
 
         [HttpPost]
         public ActionResult Add(Entry entry)
         {
-            if (ModelState.IsValidField("Duration") && entry.Duration <= 0)
-            {
-                ModelState.AddModelError("Duration", "The Duration field value must be greater than '0'.");
-            }
+            ValidateEntry(entry);
+
             if (ModelState.IsValid)
             {
                 _entriesRepository.AddEntry(entry);
 
                 return RedirectToAction("Index");
             }
-            ViewBag.ActivitiesSelectListItems = new SelectList(Data.Data.Activities, "Id", "Name");
+            SetupActivitiesSelectListItems();
             return View(entry);
         }
 
@@ -73,8 +71,34 @@ namespace Treehouse.FitnessFrog.Controllers
             {
                 return new HttpStatusCodeResult(HttpStatusCode.BadRequest);
             }
+            // Get the requested entry from the repository.
+            Entry entry = _entriesRepository.GetEntry((int)id);
+            // Return a status of "not found" if the entry wasnt found.
+            if (entry == null)
+            {
+                return HttpNotFound();
+            }
+            // Pass the entry int the view
+            SetupActivitiesSelectListItems();
+            return View(entry);
+        }
 
-            return View();
+        [HttpPost]
+        public ActionResult Edit(Entry entry)
+        {
+            //Validate the entry
+            ValidateEntry(entry);
+
+            //If the entry is valid ...
+            if (ModelState.IsValid)
+            {
+                _entriesRepository.UpdateEntry(entry);
+
+                return RedirectToAction("Index");
+            }
+            //pPopulate the activities select list items Viewbag property.
+            SetupActivitiesSelectListItems();
+            return View(entry);
         }
 
         public ActionResult Delete(int? id)
@@ -85,6 +109,19 @@ namespace Treehouse.FitnessFrog.Controllers
             }
 
             return View();
+        }
+
+        private void ValidateEntry(Entry entry)
+        {
+            if (ModelState.IsValidField("Duration") && entry.Duration <= 0)
+            {
+                ModelState.AddModelError("Duration", "The Duration field value must be greater than '0'.");
+            }
+        }
+
+        private void SetupActivitiesSelectListItems()
+        {
+            ViewBag.ActivitiesSelectListItems = new SelectList(Data.Data.Activities, "Id", "Name");
         }
     }
 }
